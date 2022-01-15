@@ -1,0 +1,46 @@
+<!--
+ * @Description: deps demo
+ * @Author: peterroe
+ * @Date: 2022-01-15 16:18:12
+ * @LastEditors: peterroe
+ * @LastEditTime: 2022-01-15 16:36:24
+-->
+
+<script>
+    let activeEffect
+    class Dep {
+        constructor(value) {
+            this.subscribes = new Set()
+            this._value = value
+        }
+        get value() {
+            this.depend()
+            return this._value
+        }
+        set value(newValue) {
+            this._value = newValue
+            this.notify()
+        }
+        notify() {
+            this.subscribes.forEach(effect => {
+                effect()
+            })
+        }
+        depend() {
+            if (activeEffect) {
+                this.subscribes.add(activeEffect)
+            }
+        }
+    }
+
+    function watchEffect(effect) {
+        activeEffect = effect
+        effect()
+        activeEffect = null
+    }
+    const dep = new Dep("hello")
+    watchEffect(() => {
+        console.log(dep.value)
+    })
+    dep.value = 23
+</script>
