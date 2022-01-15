@@ -1,0 +1,74 @@
+<!--
+ * @Description: reactive demo
+ * @Author: peterroe
+ * @Date: 2022-01-15 16:44:50
+ * @LastEditors: peterroe
+ * @LastEditTime: 2022-01-15 19:41:24
+-->
+
+<script>
+    let activeEffect
+    class Dep {
+        constructor(value) {
+            this.subscribes = new Set()
+        }
+        notify() {
+            this.subscribes.forEach(effect => {
+                effect()
+            })
+        }
+        depend() {
+            if (activeEffect) {
+                this.subscribes.add(activeEffect)
+            }
+        }
+    }
+    const targetMap = new WeakMap()
+
+    function watchEffect(effect) {
+        activeEffect = effect
+        effect()
+        activeEffect = null
+    }
+
+    function getDep(target, key) {
+        let depsMap = targetMap.get(target)
+        if (!depsMap) {
+            depsMap = new Map()
+            targetMap.set(target, depsMap)
+        }
+        let dep = depsMap.get(key)
+        if (!dep) {
+            dep = new Dep()
+            depsMap.set(key, dep)
+        }
+        return dep
+    }
+    const reactiveHandlers = {
+        get(target, key, reciver) {
+            const dep = getDep(target, key)
+            dep.depend()
+            return Reflect.get(target, key, reciver)
+        },
+        set(target, key, value, reciver) {
+            const dep = getDep(target, key)
+            const result = Reflect.set(target, key, value, reciver)
+            dep.notify()
+            return result
+        }
+    }
+
+    function reactive(raw) {
+        return new Proxy(raw, reactiveHandlers)
+    }
+
+    const state = reactive({
+        count: 0
+    })
+    watchEffect(() => {
+        console.log(state.count)
+    })
+    setInterval(() => {
+        state.count++
+    }, 500)
+</script>
